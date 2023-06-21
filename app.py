@@ -88,7 +88,7 @@ def create_app(db_url=None):
 
 
     with app.app_context():
-        # db.create_all()
+        #db.create_all()
         pass
 
     api.register_blueprint(HabitBlueprint)
