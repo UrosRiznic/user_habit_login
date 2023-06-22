@@ -1,9 +1,13 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template, url_for, redirect
 from flask_smorest import Api
 import os
 from flask_jwt_extended import jwt_manager, JWTManager
 from flask_migrate import Migrate
 from dotenv import load_dotenv
+from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import InputRequired, Length, ValidationError
 
 from db import db
 from blocklist import BLOCKLIST
@@ -90,6 +94,29 @@ def create_app(db_url=None):
     with app.app_context():
         #db.create_all()
         pass
+
+    class RegisterForm(FlaskForm):
+        username = StringField(validators=[InputRequired(), 
+        Length(min=4, max=20)], render_kw={"placeholder": "Username"})
+        pwd = PasswordField(validators=[InputRequired(), 
+        Length(min=4, max=20)], render_kw={"placeholder": "Username"})
+        submit = SubmitField("Register")
+
+        def validate_username(self, username):
+            existing_user_username = User.query.filter_by(
+                username=username.data
+            ).first()
+            if existing_user_username:
+                raise ValidationError("That username alredy exists.")
+
+    class LoginForm(FlaskForm):
+        username = StringField(validators=[InputRequired(), 
+        Length(min=4, max=20)], render_kw={"placeholder": "Username"})
+        pwd = PasswordField(validators=[InputRequired(), 
+        Length(min=4, max=20)], render_kw={"placeholder": "Username"})
+        submit = SubmitField("Login")
+
+    
 
     api.register_blueprint(HabitBlueprint)
     api.register_blueprint(UserBlueprint)
