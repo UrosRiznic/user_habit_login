@@ -3,6 +3,7 @@ from flask_smorest import Blueprint, abort
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.hash import pbkdf2_sha256
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt, create_refresh_token, get_jwt_identity
+from flask import Flask, render_template, url_for, redirect
 
 from db import db
 from blocklist import BLOCKLIST
