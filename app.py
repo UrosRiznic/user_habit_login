@@ -121,10 +121,6 @@ def create_app(db_url=None):
         Length(min=4, max=20)], render_kw={"placeholder": "Username"})
         submit = SubmitField("Login")
 
-    @login_manager.user_loader
-    def load_user(user_id):
-        return User.query.get(int(user_id))
-
     @app.route('/')
     def home():
         return render_template('home.html') 
