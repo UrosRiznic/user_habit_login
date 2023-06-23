@@ -89,4 +89,4 @@ class TokenRefresh(MethodView):
 
 @blp.route("/")
 def home():
-    return render_template('home.html')
+    return "Hello world"
