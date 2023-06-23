@@ -9,13 +9,18 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, Length, ValidationError
 from flask_sqlalchemy import SQLAlchemy
+from flask.views import MethodView
 
 from db import db
 from blocklist import BLOCKLIST
 import models
 
+from models import UserModel
+from schemas import UserSchema, HabitSchema
+
 from resources.habit import blp as HabitBlueprint
 from resources.user import blp as UserBlueprint
+from forms import LoginForm, RegisterForm
 
 def create_app(db_url=None): 
     app = Flask(__name__)
@@ -30,17 +35,21 @@ def create_app(db_url=None):
     app.config["OPENAPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv("DATABASE_URL", "sqlite:///data.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
     
     db.init_app(app)
     migrate = Migrate(app, db)
     api = Api(app)
 
+    app.config["JWT_SECRET_KEY"] = "uros"
+    app.config["SECRET_KEY"] = "KEY"
+    jwt = JWTManager(app)   
+
     login_manager = LoginManager()
     login_manager.init_app(app)
     login_manager.login_view = "login"
 
-    app.config["JWT_SECRET_KEY"] = "uros"
-    jwt = JWTManager(app)
+
     
     @jwt.token_in_blocklist_loader
     def check_if_token_in_blocklist(jwt_header, jwt_payload):
@@ -99,26 +108,27 @@ def create_app(db_url=None):
         #db.create_all()
         pass
 
-    class RegisterForm(FlaskForm):
-        username = StringField(validators=[InputRequired(), 
-        Length(min=4, max=20)], render_kw={"placeholder": "Username"})
-        pwd = PasswordField(validators=[InputRequired(), 
-        Length(min=4, max=20)], render_kw={"placeholder": "Username"})
-        submit = SubmitField("Register")
+    @login_manager.user_loader
+    def load_user(user_id):
+        return UserModel.query.get_or_404(user_id)
 
-        def validate_username(self, username):
-            existing_user_username = User.query.filter_by(
-                username=username.data
-            ).first()
-            if existing_user_username:
-                raise ValidationError("That username alredy exists.")
+    @app.route("/")
+    def base():
+        return "Base file"
 
-    class LoginForm(FlaskForm):
-        username = StringField(validators=[InputRequired(), 
-        Length(min=4, max=20)], render_kw={"placeholder": "Username"})
-        pwd = PasswordField(validators=[InputRequired(), 
-        Length(min=4, max=20)], render_kw={"placeholder": "Username"})
-        submit = SubmitField("Login")
+    @app.route('/home')
+    def home():
+        return render_template("home.html")
+
+    @app.route('/register_user', methods=["GET","POST"])
+    def registerUser():
+        form = RegisterForm()
+        return render_template("register_page.html", form=form)
+
+    @app.route('/login_user', methods=["GET","POST"])
+    def loginUser():
+        form = LoginForm()
+        return render_template('login_page.html', form=form)
 
     api.register_blueprint(HabitBlueprint)
     api.register_blueprint(UserBlueprint)

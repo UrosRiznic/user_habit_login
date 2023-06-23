@@ -3,16 +3,17 @@ from flask_smorest import Blueprint, abort
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.hash import pbkdf2_sha256
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt, create_refresh_token, get_jwt_identity
-from flask import Flask, render_template, url_for, redirect
+from flask import Flask, render_template, url_for, redirect, session
+from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 
 from db import db
 from blocklist import BLOCKLIST
 
 from models import UserModel
 from schemas import UserSchema, HabitSchema
+from forms import LoginForm, RegisterForm
 
-blp = Blueprint("Users", "users", description="Operations on users")
-
+blp = Blueprint("Users", "users", description="Operations on users", template_folder="templates", static_folder="static")
 
 @blp.route("/user/<int:user_id>")
 class User(MethodView):
@@ -85,8 +86,3 @@ class TokenRefresh(MethodView):
         jti = get_jwt()["jti"]
         BLOCKLIST.add(jti)
         return {"access_token": new_token}, 200
-
-
-@blp.route("/")
-def home():
-    return "Hello world"
