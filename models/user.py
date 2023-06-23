@@ -1,6 +1,7 @@
 from db import db
+from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 
-class UserModel(db.Model):
+class UserModel(db.Model, UserMixin):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)

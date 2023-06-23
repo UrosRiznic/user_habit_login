@@ -8,6 +8,7 @@ from flask_login import UserMixin, login_user, LoginManager, login_required, log
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, Length, ValidationError
+from flask_sqlalchemy import SQLAlchemy
 
 from db import db
 from blocklist import BLOCKLIST
@@ -33,6 +34,10 @@ def create_app(db_url=None):
     db.init_app(app)
     migrate = Migrate(app, db)
     api = Api(app)
+
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = "login"
 
     app.config["JWT_SECRET_KEY"] = "uros"
     jwt = JWTManager(app)
@@ -116,7 +121,13 @@ def create_app(db_url=None):
         Length(min=4, max=20)], render_kw={"placeholder": "Username"})
         submit = SubmitField("Login")
 
-    
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+
+    @app.route('/')
+    def home():
+        return render_template('home.html') 
 
     api.register_blueprint(HabitBlueprint)
     api.register_blueprint(UserBlueprint)
