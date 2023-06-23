@@ -19,6 +19,8 @@ from wtforms.validators import (
     ValidationError
 )
 
+from models import UserModel
+
 class RegisterForm(FlaskForm):
     username = StringField(validators=[InputRequired(), 
     Length(min=4, max=20)], render_kw={"placeholder": "Username"})
@@ -27,7 +29,7 @@ class RegisterForm(FlaskForm):
     submit = SubmitField("Register")
 
     def validate_username(self, username):
-        existing_user_username = User.query.filter_by(
+        existing_user_username = UserModel.query.filter_by(
             username=username.data
         ).first()
         if existing_user_username:

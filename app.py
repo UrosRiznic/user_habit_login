@@ -1,5 +1,6 @@
-from flask import Flask, jsonify, render_template, url_for, redirect
+from flask import Flask, jsonify, render_template, url_for, redirect, session
 from flask_smorest import Api
+from passlib.hash import pbkdf2_sha256
 import os
 from flask_jwt_extended import jwt_manager, JWTManager
 from flask_migrate import Migrate
@@ -9,6 +10,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, Length, ValidationError
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from flask.views import MethodView
 
 from db import db
@@ -123,12 +125,41 @@ def create_app(db_url=None):
     @app.route('/register_user', methods=["GET","POST"])
     def registerUser():
         form = RegisterForm()
+        if form.validate_on_submit():
+            hashed_pwd = pbkdf2_sha256.hash(form.pwd.data)
+            user = UserModel(username = form.username.data, pwd = hashed_pwd)
+            try:
+                db.session.add(user)
+                db.session.commit()
+            except IntegrityError:
+                abort(400, message="User with that name alredy exists.")
+            except SQLAlchemyError:
+                abort(500, message="Cant add user.")
+            print(user)
+            return redirect(url_for('loginUser'))
+
         return render_template("register_page.html", form=form)
 
     @app.route('/login_user', methods=["GET","POST"])
     def loginUser():
         form = LoginForm()
+        if form.validate_on_submit():
+            user = UserModel.query.filter(UserModel.username == form.username.data).first()
+            if user and pbkdf2_sha256.verify(form.pwd.data, user.pwd):
+                login_user(user)
+                return redirect(url_for('dashboard'))
         return render_template('login_page.html', form=form)
+
+    @app.route('/dashboard', methods=['GET', 'POST'])
+    @login_required
+    def dashboard():
+        return render_template('dashboard.html')
+
+    @app.route('/logout', methods=['GET', 'POST'])
+    @login_required
+    def logout_button():
+        logout_user()
+        return redirect(url_for('loginUser'))
 
     api.register_blueprint(HabitBlueprint)
     api.register_blueprint(UserBlueprint)
