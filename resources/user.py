@@ -84,3 +84,8 @@ class TokenRefresh(MethodView):
         jti = get_jwt()["jti"]
         BLOCKLIST.add(jti)
         return {"access_token": new_token}, 200
+
+
+@blp.route("/")
+def home():
+    return render_template('home.html')

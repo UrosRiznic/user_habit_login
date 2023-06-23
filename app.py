@@ -95,7 +95,6 @@ def create_app(db_url=None):
             401,
         )
 
-
     with app.app_context():
         #db.create_all()
         pass
@@ -120,10 +119,6 @@ def create_app(db_url=None):
         pwd = PasswordField(validators=[InputRequired(), 
         Length(min=4, max=20)], render_kw={"placeholder": "Username"})
         submit = SubmitField("Login")
-
-    @app.route('/')
-    def home():
-        return render_template('home.html') 
 
     api.register_blueprint(HabitBlueprint)
     api.register_blueprint(UserBlueprint)
