@@ -1,24 +1,22 @@
-from flask import Flask, jsonify, render_template, url_for, redirect, session
+from flask import Flask, jsonify, render_template, url_for, redirect, session, request, flash
 from flask_smorest import Api
 from passlib.hash import pbkdf2_sha256
+from flask_jwt_extended import create_access_token
 import os
 from flask_jwt_extended import jwt_manager, JWTManager
 from flask_migrate import Migrate
 from dotenv import load_dotenv
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import InputRequired, Length, ValidationError
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from flask.views import MethodView
 
 from db import db
 from blocklist import BLOCKLIST
 import models
 
 from models import UserModel
+from models import HabitModel
 from schemas import UserSchema, HabitSchema
+from resources.user import UserLogin
 
 from resources.habit import blp as HabitBlueprint
 from resources.user import blp as UserBlueprint
@@ -27,6 +25,8 @@ from forms import LoginForm, RegisterForm
 def create_app(db_url=None): 
     app = Flask(__name__)
     load_dotenv()
+
+    #app.config["SERVER_NAME"] = "http://127.0.0.1:5000"
 
     app.config["PROPAGATE_EXCEPTIONS"] = True
     app.config["API_TITLE"] = "Habits REST API"
@@ -37,11 +37,12 @@ def create_app(db_url=None):
     app.config["OPENAPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv("DATABASE_URL", "sqlite:///data.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
     
     db.init_app(app)
     migrate = Migrate(app, db)
     api = Api(app)
+    api.register_blueprint(HabitBlueprint)
+    api.register_blueprint(UserBlueprint)
 
     app.config["JWT_SECRET_KEY"] = "uros"
     app.config["SECRET_KEY"] = "KEY"
@@ -51,8 +52,6 @@ def create_app(db_url=None):
     login_manager.init_app(app)
     login_manager.login_view = "login"
 
-
-    
     @jwt.token_in_blocklist_loader
     def check_if_token_in_blocklist(jwt_header, jwt_payload):
         return jwt_payload["jti"] in BLOCKLIST
@@ -116,11 +115,7 @@ def create_app(db_url=None):
 
     @app.route("/")
     def base():
-        return "Base file"
-
-    @app.route('/home')
-    def home():
-        return render_template("home.html")
+        return redirect(url_for('loginUser'))
 
     @app.route('/register_user', methods=["GET","POST"])
     def registerUser():
@@ -137,7 +132,6 @@ def create_app(db_url=None):
                 abort(500, message="Cant add user.")
             print(user)
             return redirect(url_for('loginUser'))
-
         return render_template("register_page.html", form=form)
 
     @app.route('/login_user', methods=["GET","POST"])
@@ -147,21 +141,54 @@ def create_app(db_url=None):
             user = UserModel.query.filter(UserModel.username == form.username.data).first()
             if user and pbkdf2_sha256.verify(form.pwd.data, user.pwd):
                 login_user(user)
+                print("Form data: ", form.data)
+                session['access_token'] = create_access_token(identity=user.id)
                 return redirect(url_for('dashboard'))
         return render_template('login_page.html', form=form)
 
+    def is_logged_in():
+        return 'access_token' in session
+
     @app.route('/dashboard', methods=['GET', 'POST'])
-    @login_required
     def dashboard():
-        return render_template('dashboard.html')
+        if is_logged_in():
+            user_name = current_user.username
+            user_id = current_user.id
+            habits = HabitModel.query.filter_by(user_id=user_id).all()
+
+            if request.method == 'POST':
+                if 'delete' in request.form:
+                    habit_id = request.form.get('habit_id')
+                    habit = HabitModel.query.get(habit_id)
+                    if habit and habit.user_id == user_id:
+                        db.session.delete(habit)
+                        db.session.commit()
+                
+                elif 'update' in request.form:
+                    habit_id = request.form.get('habit_id')
+                    checked = request.form.get('checked')
+                    habit = HabitModel.query.get(habit_id)
+                    if habit and habit.user_id == user_id:
+                        habit.checked = checked
+                        db.session.commit()
+
+                elif 'add' in request.form:
+                    habit_name = request.form.get('habit_name')
+                    new_habit = HabitModel(name=habit_name, checked='No', user_id=user_id)
+                    db.session.add(new_habit)
+                    db.session.commit()
+
+                return redirect(url_for('dashboard'))
+
+            return render_template('dashboard.html', habits=habits, user_name=user_name)
+        else:
+            return redirect(url_for('loginUser'))
 
     @app.route('/logout', methods=['GET', 'POST'])
     @login_required
     def logout_button():
         logout_user()
+        session.pop('access_token', None)
         return redirect(url_for('loginUser'))
-
-    api.register_blueprint(HabitBlueprint)
-    api.register_blueprint(UserBlueprint)
 
     return app

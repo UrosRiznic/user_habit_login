@@ -3,10 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='dashboard.css') }}">
     <title>Dashboard</title>
+
 </head>
 <body>
-    <h1>You are loged in</h1>
-    <a href="{{ url_for('logout_button') }}">Logout</a>
+    <div class="navbar">
+        <span>Welcome, {{ user_name }}</span>
+        <a href="{{ url_for('logout_button') }}">Logout</a>
+    </div>
+    <div class="container">
+        <div class="habit-list">
+            <h2>Habit List</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Checked</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for habit in habits %}
+                    <tr>
+                        <td>{{ habit.name }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('dashboard') }}">
+                                <input type="hidden" name="habit_id" value="{{ habit.id }}">
+                                <select name="checked">
+                                    <option value="Yes" {% if habit.checked == 'Yes' %} selected {% endif %}>Yes</option>
+                                    <option value="No" {% if habit.checked == 'No' %} selected {% endif %}>No</option>
+                                </select>
+                                <input type="submit" name="update" value="Update">
+                            </form>
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('dashboard') }}">
+                                <input type="hidden" name="habit_id" value="{{ habit.id }}">
+                                <input type="submit" name="delete" value="Delete">
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <form method="POST" action="{{ url_for('dashboard') }}">
+            <input type="text" name="habit_name" placeholder="Enter habit name" required>
+            <input type="submit" name="add" value="Add Habit" class="add-habit-button">
+        </form>
+    </div>
 </body>
 </html>

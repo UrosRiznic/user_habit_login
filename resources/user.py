@@ -3,7 +3,7 @@ from flask_smorest import Blueprint, abort
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.hash import pbkdf2_sha256
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt, create_refresh_token, get_jwt_identity
-from flask import Flask, render_template, url_for, redirect, session
+from flask import Flask, session, render_template, redirect, url_for
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 
 from db import db
@@ -11,7 +11,6 @@ from blocklist import BLOCKLIST
 
 from models import UserModel
 from schemas import UserSchema, HabitSchema
-from forms import LoginForm, RegisterForm
 
 blp = Blueprint("Users", "users", description="Operations on users", template_folder="templates", static_folder="static")
 
@@ -43,7 +42,6 @@ class UserRegister(MethodView):
             username = user_data["username"],
             pwd = pbkdf2_sha256.hash(user_data["pwd"])
         )
-
         try:
             db.session.add(user)
             db.session.commit()
@@ -51,23 +49,23 @@ class UserRegister(MethodView):
             abort(400, message="User with that name alredy exists.")
         except SQLAlchemyError:
             abort(500, message="Cant add user.")
-
         return user
 
 @blp.route("/login")
 class UserLogin(MethodView):
+    def get(self):
+        return render_template('login.html')
+
     @blp.arguments(UserSchema)
     def post(self, user_data):
-        user = UserModel.query.filter(
-            UserModel.username == user_data["username"]
-        ).first()
-
+        user = UserModel.query.filter(UserModel.username == user_data["username"]).first()
         if user and pbkdf2_sha256.verify(user_data["pwd"], user.pwd):
             access_token = create_access_token(identity=user.id, fresh=True)
             refresh_token = create_refresh_token(identity=user.id)
-            return {"access_token":access_token, "refresh_token":refresh_token}
-        abort(401,message="Invalid user token")
-        
+            return {"access_token": access_token, "refresh_token": refresh_token}
+            
+        abort(401, message="Invalid user credentials")
+ 
 @blp.route("/logout")
 class UserLogout(MethodView):
     @jwt_required()

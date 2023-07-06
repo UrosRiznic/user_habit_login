@@ -3,19 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='login_register.css') }}">
     <title>Register Page</title>
 </head>
 <body>
-    <h1>Register user</h1>
-
-    <form action="" method="POST">
-        {{ form.hidden_tag() }}
-        {{ form.username }}
-        {{ form.pwd }}
-        {{ form.submit }}
-    </form>
-
-    <a href="{{url_for('loginUser')}}">Alredy have account, Login here.</a>
+    <nav class="navigation">
+        <h1>Register user:</h1>
+    </nav>
+    <div class="container">
+        <form action="" method="POST">
+            {{ form.hidden_tag() }}
+            {{ form.username }}
+            {{ form.pwd }}
+            {{ form.submit }}
+        </form>
+        <a href="{{url_for('loginUser')}}">Alredy have account, Login here.</a>
+    </div>
 
 </body>
 </html>

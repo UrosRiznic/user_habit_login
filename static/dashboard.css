@@ -1,0 +1,60 @@
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #333;
+    color: #fff;
+    padding: 10px;
+}
+
+.navbar span {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.navbar a {
+    color: #fff;
+    text-decoration: none;
+    padding: 5px;
+}
+
+.container {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.habit-list {
+    border: 1px solid #333;
+    padding: 10px;
+    margin-bottom: 20px;
+    margin-left: 600px;
+    margin-right: 600px;
+}
+
+.add-habit-button {
+    margin-top: 10px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table th,
+table td {
+    padding: 8px;
+    border-bottom: 1px solid #333;
+}
+
+@media (max-width: 1000px) and (max-height: 410px) {
+.table-container {
+    overflow-x: auto;
+    }
+}
